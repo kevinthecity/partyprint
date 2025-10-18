@@ -1,6 +1,7 @@
 import { PrinterInfo, FileInfo, UploadResponse, HealthResponse } from './types';
 
-const API_BASE = import.meta.env.DEV ? 'http://192.168.4.120:8000' : '';
+// Use relative URLs so it works via Tailscale, local network, etc.
+const API_BASE = '';
 
 export async function checkHealth(): Promise<HealthResponse> {
   const response = await fetch(`${API_BASE}/health`);
