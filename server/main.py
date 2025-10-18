@@ -12,6 +12,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from PIL import Image, ImageOps
 
 # Load environment variables
 load_dotenv()
@@ -79,6 +80,52 @@ def sanitize_filename(filename: str) -> str:
     name, ext = os.path.splitext(filename)
     return f"{timestamp}_{name}{ext}"
 
+def preprocess_image_for_print(input_path: Path, output_path: Path) -> None:
+    """
+    Preprocess image for Canon Selphy CP1500 4x6" printing.
+    - Target size: 1800x1200 pixels (4x6" at 300 DPI)
+    - Maintains aspect ratio with letterboxing (no cropping)
+    - Adds white borders if needed
+    - Auto-rotates based on EXIF
+    """
+    try:
+        # Open and auto-rotate image based on EXIF orientation
+        with Image.open(input_path) as img:
+            # Auto-rotate based on EXIF data
+            img = ImageOps.exif_transpose(img)
+
+            # Convert to RGB if needed (handles RGBA, grayscale, etc.)
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+
+            # Target dimensions for 4x6" at 300 DPI
+            # Canon Selphy CP1500 prints at 300x300 DPI
+            target_width = 1800  # 6 inches * 300 DPI
+            target_height = 1200  # 4 inches * 300 DPI
+
+            # Calculate scaling to fit image within target dimensions
+            img.thumbnail((target_width, target_height), Image.Resampling.LANCZOS)
+
+            # Create a white canvas at target size
+            canvas = Image.new('RGB', (target_width, target_height), (255, 255, 255))
+
+            # Calculate position to center the image
+            x_offset = (target_width - img.width) // 2
+            y_offset = (target_height - img.height) // 2
+
+            # Paste the image onto the canvas
+            canvas.paste(img, (x_offset, y_offset))
+
+            # Save the processed image
+            canvas.save(output_path, 'JPEG', quality=95, optimize=True)
+
+            logger.info(f"Preprocessed image: {input_path.name} -> {output_path.name} "
+                       f"(original: {img.width}x{img.height}, output: {target_width}x{target_height})")
+
+    except Exception as e:
+        logger.error(f"Failed to preprocess image: {e}")
+        raise HTTPException(status_code=500, detail=f"Image processing failed: {str(e)}")
+
 def get_printers() -> List[PrinterInfo]:
     """Get list of available CUPS printers"""
     try:
@@ -125,13 +172,17 @@ def get_printers() -> List[PrinterInfo]:
         return []
 
 def print_file(file_path: Path, printer_name: str) -> Optional[str]:
-    """Print a file using CUPS lp command"""
+    """
+    Print a file using CUPS lp command.
+    Optimized for Canon Selphy CP1500 4x6" postcard printing.
+    """
     try:
         cmd = [
             "lp",
             "-d", printer_name,
-            "-o", "fit-to-page",
-            "-o", "media=4x6",
+            "-o", "media=Postcard",  # Canon Selphy uses "Postcard" for 4x6"
+            "-o", "ColorModel=RGB",  # Ensure RGB color mode for dye-sub
+            "-o", "print-quality=5",  # Highest quality
             str(file_path)
         ]
 
@@ -195,11 +246,11 @@ async def upload_file(image: UploadFile = File(...)):
         )
 
     try:
-        # Save file
+        # Save original file
         safe_filename = sanitize_filename(image.filename)
-        file_path = UPLOAD_DIR / safe_filename
+        original_path = UPLOAD_DIR / safe_filename
 
-        with open(file_path, "wb") as f:
+        with open(original_path, "wb") as f:
             content = await image.read()
 
             # Double-check file size
@@ -211,10 +262,16 @@ async def upload_file(image: UploadFile = File(...)):
 
             f.write(content)
 
-        logger.info(f"File saved: {file_path}")
+        logger.info(f"File saved: {original_path}")
 
-        # Print the file
-        job_id = print_file(file_path, PRINTER_NAME)
+        # Create print-ready version (4x6" at 300 DPI with letterboxing)
+        print_filename = f"print_{safe_filename}"
+        print_path = UPLOAD_DIR / print_filename
+
+        preprocess_image_for_print(original_path, print_path)
+
+        # Print the preprocessed file
+        job_id = print_file(print_path, PRINTER_NAME)
 
         # Create file info
         file_info = FileInfo(
