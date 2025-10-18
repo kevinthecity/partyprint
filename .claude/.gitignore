@@ -1,0 +1,4 @@
+# Ignore any local/private Claude Code files
+*.local
+*.private
+.DS_Store
