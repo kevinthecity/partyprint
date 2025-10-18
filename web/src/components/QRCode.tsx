@@ -4,9 +4,26 @@ export const QRCode: React.FC = () => {
   const [currentUrl, setCurrentUrl] = useState('');
 
   useEffect(() => {
-    // Get the current URL
-    const url = window.location.origin;
-    setCurrentUrl(url);
+    // Fetch the local network IP from the backend
+    const fetchNetworkInfo = async () => {
+      try {
+        const response = await fetch('/network-info');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.url) {
+            setCurrentUrl(data.url);
+            return;
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch network info:', error);
+      }
+
+      // Fallback to current URL if network-info fails
+      setCurrentUrl(window.location.origin);
+    };
+
+    fetchNetworkInfo();
   }, []);
 
   // Simple QR code generation using a free service

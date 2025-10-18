@@ -213,6 +213,30 @@ async def health_check():
     """Health check endpoint"""
     return {"status": "ok"}
 
+@app.get("/network-info")
+async def get_network_info():
+    """Get local network IP address for QR code generation"""
+    try:
+        # Get local IP address (not Tailscale IP)
+        result = subprocess.run(
+            ["hostname", "-I"],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        # hostname -I returns all IPs, first one is usually the local network IP
+        ips = result.stdout.strip().split()
+        # Filter out Tailscale IPs (100.x.x.x range) and localhost
+        local_ip = next((ip for ip in ips if not ip.startswith('100.') and not ip.startswith('127.')), None)
+
+        if local_ip:
+            return {"localIP": local_ip, "url": f"http://{local_ip}:{PORT}"}
+        else:
+            return {"localIP": None, "url": None}
+    except Exception as e:
+        logger.error(f"Failed to get network info: {e}")
+        return {"localIP": None, "url": None}
+
 @app.get("/printers", response_model=List[PrinterInfo])
 async def list_printers():
     """Get list of available printers"""
