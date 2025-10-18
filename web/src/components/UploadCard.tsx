@@ -45,7 +45,7 @@ export const UploadCard: React.FC<UploadCardProps> = ({ onUploadSuccess }) => {
       if (response.ok) {
         setUploadStatus({
           type: 'success',
-          message: 'Got it! Your photo is heading to the printer.'
+          message: '✅ SOUL CAPTURED! Your cursed image is being summoned to the printer... 👹'
         });
         onUploadSuccess();
 
@@ -99,7 +99,7 @@ export const UploadCard: React.FC<UploadCardProps> = ({ onUploadSuccess }) => {
 
   return (
     <div className="card">
-      <h2>Upload Your Photo</h2>
+      <h2>🎃 CAPTURE YOUR SOUL 🎃</h2>
 
       <div
         className={`upload-area ${isDragging ? 'drag-over' : ''}`}
@@ -110,17 +110,17 @@ export const UploadCard: React.FC<UploadCardProps> = ({ onUploadSuccess }) => {
       >
         <div className="upload-icon">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" opacity="0.6">
-            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
-            <path d="M12,19L8,15H10.5V12H13.5V15H16L12,19Z"/>
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+            <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M11,7H13V13H11V7M11,15H13V17H11V15Z"/>
           </svg>
         </div>
 
         <div className="upload-text">
-          {isUploading ? 'Uploading...' : 'Drop your photo here'}
+          {isUploading ? '💀 Sending to the void...' : '👻 Drop your cursed photo here'}
         </div>
 
         <div className="upload-hint">
-          or click to browse (JPG, PNG, HEIC up to {maxSizeMB}MB)
+          or summon file browser (JPG, PNG, HEIC up to {maxSizeMB}MB)
         </div>
 
         <button
@@ -131,7 +131,7 @@ export const UploadCard: React.FC<UploadCardProps> = ({ onUploadSuccess }) => {
             openFileDialog();
           }}
         >
-          {isUploading ? 'Uploading...' : 'Choose File'}
+          {isUploading ? '⚡ UPLOADING...' : '🔥 UNLEASH PHOTO'}
         </button>
 
         <input
@@ -145,7 +145,7 @@ export const UploadCard: React.FC<UploadCardProps> = ({ onUploadSuccess }) => {
 
       {isUploading && (
         <div className="upload-progress">
-          <div className="progress-text">Uploading and printing your photo...</div>
+          <div className="progress-text">⚡ Channeling dark energies... Printing from the shadows... 🔮</div>
         </div>
       )}
 

@@ -71,19 +71,19 @@ export const FileList: React.FC<FileListProps> = ({ refreshTrigger }) => {
   if (loading) {
     return (
       <div className="card">
-        <h2>Recent Uploads</h2>
-        <div className="empty-state">Loading files...</div>
+        <h2>💀 SOULS COLLECTED 💀</h2>
+        <div className="empty-state">🔮 Summoning your images from the void...</div>
       </div>
     );
   }
 
   return (
     <div className="card">
-      <h2>Recent Uploads</h2>
+      <h2>💀 SOULS COLLECTED 💀</h2>
 
       {files.length === 0 ? (
         <div className="empty-state">
-          No photos uploaded yet. Upload your first photo to get started!
+          👻 The void is empty... No souls have been captured yet. Be the first!
         </div>
       ) : (
         <div className="file-list">
@@ -119,7 +119,7 @@ export const FileList: React.FC<FileListProps> = ({ refreshTrigger }) => {
                 }}
                 disabled={printingFiles.has(file.name)}
               >
-                {printingFiles.has(file.name) ? 'Printing...' : 'Print Again'}
+                {printingFiles.has(file.name) ? '⚡ Summoning...' : '🔥 Print Again'}
               </button>
             </div>
           ))}

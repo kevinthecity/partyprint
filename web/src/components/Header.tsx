@@ -38,20 +38,20 @@ export const Header: React.FC = () => {
     <header className="header">
       <div className="header-content">
         <div className="logo">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 8H17V3H7V8H5C3.34 8 2 9.34 2 11V17H6V21H18V17H22V11C22 9.34 20.66 8 19 8ZM9 5H15V8H9V5ZM16 19H8V14H16V19ZM18 15H20V11C20 10.45 19.55 10 19 10H5C4.45 10 4 10.45 4 11V15H6V12H18V15Z"/>
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5zm0 2.18l8 4V13c0 4.52-2.98 8.69-7 9.93-4.02-1.24-7-5.41-7-9.93V8.18l6-3zM10 9v2h4V9h-2zm0 4v2h4v-2h-2z"/>
           </svg>
-          PartyPrint
+          SPAWN'S HELLISH PHOTO BOOTH
         </div>
 
         <div className="printer-status">
           <div className={`status-dot ${isHealthy === false ? 'error' : ''}`}></div>
           {isHealthy === null ? (
-            'Checking printer...'
+            '🔮 Summoning printer...'
           ) : isHealthy ? (
-            activePrinter ? `Ready: ${activePrinter}` : 'Server ready'
+            activePrinter ? `👹 READY TO PRINT: ${activePrinter}` : '💀 Server awakened'
           ) : (
-            'Printer unavailable'
+            '⚠️ Printer in the shadows'
           )}
         </div>
       </div>
