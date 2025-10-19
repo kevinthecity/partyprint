@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 PRINTER_NAME = os.getenv("PRINTER_NAME")
 UPLOAD_DIR = Path(os.getenv("UPLOAD_DIR", "./uploads"))
 HOST = os.getenv("HOST", "0.0.0.0")
-PORT = int(os.getenv("PORT", 8000))
+PORT = int(os.getenv("PORT", 8027))
 MAX_FILE_MB = int(os.getenv("MAX_FILE_MB", 25))
 MAX_FILE_BYTES = MAX_FILE_MB * 1024 * 1024
 
@@ -80,51 +80,55 @@ def sanitize_filename(filename: str) -> str:
     name, ext = os.path.splitext(filename)
     return f"{timestamp}_{name}{ext}"
 
-def preprocess_image_for_print(input_path: Path, output_path: Path) -> None:
+def preprocess_image_for_print(input_path: Path, output_path: Path, fill_mode: bool = True):
     """
-    Preprocess image for Canon Selphy CP1500 4x6" printing.
-    - Target size: 1800x1200 pixels (4x6" at 300 DPI)
-    - Maintains aspect ratio with letterboxing (no cropping)
-    - Adds white borders if needed
-    - Auto-rotates based on EXIF
+    Prepare an image for Canon Selphy CP1500 4x6" postcard printing.
+    fill_mode=True crops to fill the 4x6 frame.
+    fill_mode=False fits entire image with white borders.
     """
     try:
-        # Open and auto-rotate image based on EXIF orientation
         with Image.open(input_path) as img:
-            # Auto-rotate based on EXIF data
             img = ImageOps.exif_transpose(img)
+            if img.mode != "RGB":
+                img = img.convert("RGB")
 
-            # Convert to RGB if needed (handles RGBA, grayscale, etc.)
-            if img.mode != 'RGB':
-                img = img.convert('RGB')
+            # Canon Selphy CP1500 postcard paper dimensions
+            target_width = 1755  # px
+            target_height = 1170  # px
+            target_ratio = target_width / target_height
 
-            # Target dimensions for 4x6" at 300 DPI
-            # Canon Selphy CP1500 prints at 300x300 DPI
-            target_width = 1800  # 6 inches * 300 DPI
-            target_height = 1200  # 4 inches * 300 DPI
+            src_width, src_height = img.size
+            src_ratio = src_width / src_height
 
-            # Calculate scaling to fit image within target dimensions
-            img.thumbnail((target_width, target_height), Image.Resampling.LANCZOS)
+            if fill_mode:
+                # Crop to fill entire frame (no borders)
+                if src_ratio > target_ratio:
+                    # Image is wider than 4x6: crop sides
+                    new_width = int(src_height * target_ratio)
+                    offset = (src_width - new_width) // 2
+                    img = img.crop((offset, 0, offset + new_width, src_height))
+                else:
+                    # Image is taller than 4x6: crop top/bottom
+                    new_height = int(src_width / target_ratio)
+                    offset = (src_height - new_height) // 2
+                    img = img.crop((0, offset, src_width, offset + new_height))
+                img = img.resize((target_width, target_height), Image.Resampling.LANCZOS)
+            else:
+                # Fit image with white borders
+                img.thumbnail((target_width, target_height), Image.Resampling.LANCZOS)
+                canvas = Image.new("RGB", (target_width, target_height), (255, 255, 255))
+                x_offset = (target_width - img.width) // 2
+                y_offset = (target_height - img.height) // 2
+                canvas.paste(img, (x_offset, y_offset))
+                img = canvas
 
-            # Create a white canvas at target size
-            canvas = Image.new('RGB', (target_width, target_height), (255, 255, 255))
-
-            # Calculate position to center the image
-            x_offset = (target_width - img.width) // 2
-            y_offset = (target_height - img.height) // 2
-
-            # Paste the image onto the canvas
-            canvas.paste(img, (x_offset, y_offset))
-
-            # Save the processed image
-            canvas.save(output_path, 'JPEG', quality=95, optimize=True)
-
-            logger.info(f"Preprocessed image: {input_path.name} -> {output_path.name} "
-                       f"(original: {img.width}x{img.height}, output: {target_width}x{target_height})")
+            img.save(output_path, "JPEG", quality=95, subsampling=0)
+            logger.info(f"Preprocessed image for print: {input_path.name} ({img.width}x{img.height})")
 
     except Exception as e:
-        logger.error(f"Failed to preprocess image: {e}")
-        raise HTTPException(status_code=500, detail=f"Image processing failed: {str(e)}")
+        logger.error(f"Image preprocessing failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Image preprocessing failed: {str(e)}")
+
 
 def get_printers() -> List[PrinterInfo]:
     """Get list of available CUPS printers"""
@@ -297,13 +301,13 @@ async def upload_file(image: UploadFile = File(...)):
         # Print the preprocessed file
         job_id = print_file(print_path, PRINTER_NAME)
 
-        # Create file info
         file_info = FileInfo(
             name=safe_filename,
             url=f"/files/{safe_filename}",
-            size=file_path.stat().st_size,
-            created=datetime.fromtimestamp(file_path.stat().st_ctime).isoformat()
+            size=original_path.stat().st_size,
+            created=datetime.fromtimestamp(original_path.stat().st_ctime).isoformat()
         )
+
 
         return UploadResponse(
             ok=True,

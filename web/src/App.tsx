@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Header } from './components/Header';
+import { CameraBooth } from './components/CameraBooth';
 import { UploadCard } from './components/UploadCard';
 import { FileList } from './components/FileList';
 import { QRCode } from './components/QRCode';
@@ -8,11 +9,13 @@ import './styles.css';
 
 function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [hasCamera, setHasCamera] = useState(false);
 
-  const handleUploadSuccess = () => {
-    // Trigger a refresh of the file list
-    setRefreshTrigger(prev => prev + 1);
-  };
+  useEffect(() => {
+    setHasCamera(!!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+  }, []);
+
+  const handleUploadSuccess = () => setRefreshTrigger(prev => prev + 1);
 
   return (
     <div className="app">
@@ -20,7 +23,11 @@ function App() {
 
       <main className="main">
         <div className="grid">
-          <UploadCard onUploadSuccess={handleUploadSuccess} />
+          {hasCamera ? (
+            <CameraBooth onUploadSuccess={handleUploadSuccess} />
+          ) : (
+            <UploadCard onUploadSuccess={handleUploadSuccess} />
+          )}
           <FileList refreshTrigger={refreshTrigger} />
           <QRCode />
         </div>
